@@ -1,543 +1,539 @@
-
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title></title>
+<title>Monaco Editor</title>
 
 <style>
-:root {
-  color-scheme: dark;
-  --bg: #0d0d0d;
-  --panel: #111111;
-  --border: #292929;
-  --text: #dedede;
-  --muted: #858585;
-}
-
 * {
-  box-sizing: border-box;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
 }
 
 html, body {
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  overflow: hidden;
-  background: var(--bg);
-  color: var(--text);
-  font-family: "Segoe UI", Arial, sans-serif;
-  font-size: 12px;
+    width: 868px;
+    height: 436px;
+    min-width: 868px;
+    min-height: 436px;
+    max-width: 868px;
+    max-height: 436px;
+    overflow: hidden;
+    background: #0f0f0f;
+    color: #d4d4d4;
+    font-family: "Segoe UI", sans-serif;
 }
 
-button {
-  font: inherit;
-  color: inherit;
-  cursor: pointer;
+#app {
+    width: 868px;
+    height: 436px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #0f0f0f;
+    border: 1px solid #292929;
 }
 
-.app {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: var(--bg);
-  border: 1px solid #303030;
-  border-radius: 7px;
+/* Tab bar */
+#tabbar {
+    height: 36px;
+    min-height: 36px;
+    display: flex;
+    align-items: stretch;
+    background: #111111;
+    border-bottom: 1px solid #292929;
+    overflow: hidden;
 }
 
-/* Minimal top bar */
-
-.topbar {
-  height: 2px;
-  min-height: 2px;
-  background: #111;
-}
-
-/* Tabs */
-
-.tabbar {
-  height: 39px;
-  min-height: 39px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 0 5px;
-  background: #111;
-  border-bottom: 1px solid #242424;
-}
-
-.tabs {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  min-width: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.tabs::-webkit-scrollbar {
-  display: none;
+#tabs {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .tab {
-  height: 29px;
-  min-width: 90px;
-  max-width: 210px;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 0 9px;
-  border: 1px solid transparent;
-  border-radius: 5px;
-  background: transparent;
-  color: #aaa;
-  white-space: nowrap;
+    height: 35px;
+    min-width: 100px;
+    max-width: 180px;
+    padding: 0 13px;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    border-right: 1px solid #242424;
+    color: #777777;
+    font-size: 12px;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+    overflow: hidden;
 }
 
 .tab:hover {
-  background: #1c1c1c;
-  color: #ddd;
+    background: #171717;
+    color: #bbbbbb;
 }
 
 .tab.active {
-  background: #202020;
-  border-color: #292929;
-  color: #eee;
-}
-
-.tab-marker {
-  font-size: 16px;
-  font-weight: 600;
+    background: #0f0f0f;
+    color: #eeeeee;
+    border-top: 2px solid #d6d6d6;
+    height: 36px;
 }
 
 .tab-name {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  outline: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .tab-close {
-  flex-shrink: 0;
-  display: grid;
-  place-items: center;
-  width: 15px;
-  height: 15px;
-  padding: 0;
-  border: 0;
-  border-radius: 3px;
-  background: transparent;
-  color: #888;
-  font-size: 16px;
+    margin-left: auto;
+    color: #777777;
+    font-size: 15px;
+    line-height: 1;
+    padding: 2px;
 }
 
 .tab-close:hover {
-  background: #383838;
-  color: white;
+    color: #ffffff;
 }
 
-.add-tab {
-  width: 27px;
-  height: 27px;
-  flex-shrink: 0;
-  display: grid;
-  place-items: center;
-  padding: 0;
-  border: 0;
-  border-radius: 4px;
-  background: transparent;
-  color: #777;
-  font-size: 21px;
+#add-tab {
+    width: 38px;
+    min-width: 38px;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: #858585;
+    font-size: 20px;
+    cursor: pointer;
 }
 
-.add-tab:hover {
-  background: #222;
-  color: #eee;
+#add-tab:hover {
+    background: #1b1b1b;
+    color: #ffffff;
 }
 
-/* Editor takes all remaining space */
-
-.editor-container {
-  position: relative;
-  flex: 1;
-  min-height: 0;
-  background: var(--bg);
-}
-
+/* Editor */
 #editor {
-  position: absolute;
-  inset: 0;
+    width: 100%;
+    height: 377px;
+    min-height: 0;
+    flex: 1;
+    overflow: hidden;
+    background: #0f0f0f;
 }
 
-/* Small unobtrusive status line */
-
-.statusbar {
-  height: 20px;
-  min-height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 9px;
-  border-top: 1px solid #222;
-  background: #111;
-  color: #777;
-  font-size: 10px;
+/* Status bar */
+#statusbar {
+    height: 23px;
+    min-height: 23px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 10px;
+    background: #111111;
+    border-top: 1px solid #292929;
+    color: #777777;
+    font-size: 10px;
+    user-select: none;
 }
 
-.status-group {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.status-left, .status-right {
+    display: flex;
+    align-items: center;
+    gap: 13px;
 }
 
-.toast-container {
-  position: fixed;
-  top: 10px;
-  right: 10px;
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  pointer-events: none;
+.status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #8a8a8a;
+    display: inline-block;
+    margin-right: 5px;
 }
 
-.toast {
-  padding: 9px 12px;
-  border: 1px solid #353535;
-  border-radius: 5px;
-  background: #1a1a1a;
-  color: #ddd;
-  animation: toast-in .18s ease both;
-}
-
-@keyframes toast-in {
-  from {
-    opacity: 0;
-    transform: translateX(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+input.rename-input {
+    width: 110px;
+    border: 1px solid #444444;
+    outline: none;
+    background: #181818;
+    color: #ffffff;
+    font: inherit;
+    padding: 2px 4px;
 }
 </style>
 </head>
 
 <body>
-<div class="app">
+<div id="app">
 
-  <div class="topbar"></div>
+    <div id="tabbar">
+        <div id="tabs"></div>
+        <button id="add-tab" title="New tab">+</button>
+    </div>
 
-  <div class="tabbar">
-    <div class="tabs" id="tabs"></div>
-
-    <button
-      class="add-tab"
-      id="addTab"
-      title="New tab"
-      aria-label="New tab">+</button>
-  </div>
-
-  <main class="editor-container">
     <div id="editor"></div>
-  </main>
 
-  <footer class="statusbar">
-    <div class="status-group">
-      <span>Lua</span>
-      <span id="position">Ln 1, Col 1</span>
+    <div id="statusbar">
+        <div class="status-left">
+            <span><span class="status-dot"></span>Ready</span>
+            <span id="cursor-position">Ln 1, Col 1</span>
+        </div>
+        <div class="status-right">
+            <span>Lua</span>
+            <span>UTF-8</span>
+            <span id="line-count">1 line</span>
+        </div>
     </div>
-    <div class="status-group">
-      <span id="indent">Spaces: 4</span>
-      <span>UTF-8</span>
-    </div>
-  </footer>
 
 </div>
-
-<div class="toast-container" id="toasts"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js"></script>
 
 <script>
-const $ = id => document.getElementById(id);
+require.config({
+    paths: {
+        vs: "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs"
+    }
+});
 
 let editor;
-let activeTabId = null;
-let nextTabId = 1;
+let nextId = 2;
+let activeTabId = 1;
 
-const tabs = [];
+const tabs = [
+    {
+        id: 1,
+        name: "main.lua",
+        content: ""
+    }
+];
 
-function notify(message) {
-  const toast = document.createElement("div");
-  toast.className = "toast";
-  toast.textContent = message;
-  $("toasts").appendChild(toast);
+const editorElement = document.getElementById("editor");
+const tabsElement = document.getElementById("tabs");
+const cursorPosition = document.getElementById("cursor-position");
+const lineCount = document.getElementById("line-count");
 
-  setTimeout(() => {
-    toast.style.transition = "opacity .18s, transform .18s";
-    toast.style.opacity = "0";
-    toast.style.transform = "translateX(8px)";
-    setTimeout(() => toast.remove(), 200);
-  }, 1800);
-}
+require(["vs/editor/editor.main"], function () {
+    monaco.languages.register({ id: "lua" });
 
-function createTab(name = "Untitled Tab", content = "") {
-  const tab = {
-    id: nextTabId++,
-    name,
-    model: monaco.editor.createModel(content, "lua")
-  };
+    monaco.languages.setMonarchTokensProvider("lua", {
+        keywords: [
+            "and", "break", "do", "else", "elseif", "end",
+            "false", "for", "function", "if", "in", "local",
+            "nil", "not", "or", "repeat", "return", "then",
+            "true", "until", "while"
+        ],
 
-  tabs.push(tab);
-  activateTab(tab.id);
-  return tab;
+        builtins: [
+            "print", "pairs", "ipairs", "next", "type",
+            "tostring", "tonumber", "select", "unpack",
+            "pcall", "xpcall", "error", "assert",
+            "math", "string", "table", "coroutine",
+            "os", "io", "debug", "require"
+        ],
+
+        operators: [
+            "+", "-", "*", "/", "%", "^", "#", "==",
+            "~=", "<=", ">=", "<", ">", "=", "..", "..."
+        ],
+
+        tokenizer: {
+            root: [
+                [/--\[\[/, "comment", "@commentBlock"],
+                [/--.*$/, "comment"],
+                [/\[(=*)\[/, {
+                    token: "string",
+                    next: "@stringBlock.$1"
+                }],
+                [/"([^"\\]|\\.)*$/, "string.invalid"],
+                [/'([^'\\]|\\.)*$/, "string.invalid"],
+                [/"([^"\\]|\\.)*"/, "string"],
+                [/'([^'\\]|\\.)*'/, "string"],
+                [/\d+(\.\d+)?([eE][\-+]?\d+)?/, "number"],
+                [/[a-zA-Z_]\w*/, {
+                    cases: {
+                        "@keywords": "keyword",
+                        "@builtins": "predefined",
+                        "@default": "identifier"
+                    }
+                }],
+                [/[+\-*\/%#^=<>~]+/, "operator"],
+                [/[{}()\[\]]/, "@brackets"],
+                [/[;,.]/, "delimiter"]
+            ],
+
+            commentBlock: [
+                [/\]\]/, "comment", "@pop"],
+                [/./, "comment"]
+            ],
+
+            stringBlock: [
+                [/\](@$)\]/, "string", "@pop"],
+                [/./, "string"]
+            ]
+        }
+    });
+
+    monaco.editor.defineTheme("erys-dark", {
+        base: "vs-dark",
+        inherit: true,
+        rules: [
+            { token: "keyword", foreground: "C586C0" },
+            { token: "predefined", foreground: "DCDCAA" },
+            { token: "comment", foreground: "6A9955" },
+            { token: "string", foreground: "CE9178" },
+            { token: "number", foreground: "B5CEA8" }
+        ],
+        colors: {
+            "editor.background": "#0f0f0f",
+            "editor.foreground": "#d4d4d4",
+            "editorLineNumber.foreground": "#505050",
+            "editorLineNumber.activeForeground": "#bdbdbd",
+            "editorCursor.foreground": "#ffffff",
+            "editor.selectionBackground": "#333333",
+            "editor.lineHighlightBackground": "#141414",
+            "editorIndentGuide.background": "#252525",
+            "editorIndentGuide.activeBackground": "#3a3a3a",
+            "editorGutter.background": "#0f0f0f",
+            "editorWidget.background": "#151515",
+            "editorWidget.border": "#303030"
+        }
+    });
+
+    editor = monaco.editor.create(editorElement, {
+        value: "",
+        language: "lua",
+        theme: "erys-dark",
+        automaticLayout: true,
+        minimap: { enabled: false },
+        fontSize: 13,
+        fontFamily: "Consolas, 'Courier New', monospace",
+        lineHeight: 20,
+        tabSize: 4,
+        insertSpaces: true,
+        wordWrap: "off",
+        scrollBeyondLastLine: false,
+        renderLineHighlight: "line",
+        roundedSelection: false,
+        padding: {
+            top: 10,
+            bottom: 8
+        },
+        folding: true,
+        glyphMargin: false,
+        lineNumbers: "on",
+        overviewRulerLanes: 0,
+        hideCursorInOverviewRuler: true,
+        overviewRulerBorder: false,
+        contextmenu: true,
+        smoothScrolling: true,
+        cursorBlinking: "smooth",
+        bracketPairColorization: {
+            enabled: true
+        },
+        guides: {
+            indentation: true,
+            bracketPairs: true
+        },
+        scrollbar: {
+            verticalScrollbarSize: 7,
+            horizontalScrollbarSize: 7,
+            useShadows: false
+        }
+    });
+
+    editor.onDidChangeCursorPosition(function (event) {
+        cursorPosition.textContent =
+            "Ln " + event.position.lineNumber +
+            ", Col " + event.position.column;
+    });
+
+    editor.onDidChangeModelContent(function () {
+        const tab = getActiveTab();
+        if (tab) {
+            tab.content = editor.getValue();
+        }
+
+        updateLineCount();
+    });
+
+    renderTabs();
+    updateLineCount();
+
+    window.addEventListener("resize", function () {
+        editor.layout();
+    });
+});
+
+function getActiveTab() {
+    return tabs.find(function (tab) {
+        return tab.id === activeTabId;
+    });
 }
 
 function renderTabs() {
-  const container = $("tabs");
-  container.replaceChildren();
+    tabsElement.innerHTML = "";
 
-  for (const tab of tabs) {
-    const button = document.createElement("button");
-    button.className =
-      "tab" + (tab.id === activeTabId ? " active" : "");
+    tabs.forEach(function (tab) {
+        const element = document.createElement("div");
+        element.className = "tab" +
+            (tab.id === activeTabId ? " active" : "");
 
-    const marker = document.createElement("span");
-    marker.className = "tab-marker";
-    marker.textContent = "❝";
+        const name = document.createElement("span");
+        name.className = "tab-name";
+        name.textContent = tab.name;
+        name.title = "Double-click to rename";
 
-    const name = document.createElement("span");
-    name.className = "tab-name";
-    name.textContent = tab.name;
-    name.title = "Double-click to rename";
+        name.addEventListener("dblclick", function (event) {
+            event.stopPropagation();
+            renameTab(tab, name);
+        });
 
-    name.addEventListener("dblclick", event => {
-      event.stopPropagation();
-      renameTab(tab.id);
+        const close = document.createElement("span");
+        close.className = "tab-close";
+        close.textContent = "×";
+        close.title = "Close tab";
+
+        close.addEventListener("click", function (event) {
+            event.stopPropagation();
+            closeTab(tab.id);
+        });
+
+        element.appendChild(name);
+        element.appendChild(close);
+
+        element.addEventListener("click", function () {
+            switchTab(tab.id);
+        });
+
+        tabsElement.appendChild(element);
     });
-
-    const close = document.createElement("button");
-    close.className = "tab-close";
-    close.textContent = "×";
-    close.title = "Close tab";
-    close.setAttribute("aria-label", "Close tab");
-
-    close.addEventListener("click", event => {
-      event.stopPropagation();
-      closeTab(tab.id);
-    });
-
-    button.append(marker, name, close);
-    button.addEventListener("click", () => activateTab(tab.id));
-
-    container.appendChild(button);
-  }
 }
 
-function activateTab(id) {
-  const tab = tabs.find(item => item.id === id);
-  if (!tab) return;
+function switchTab(id) {
+    if (!editor || id === activeTabId) return;
 
-  activeTabId = id;
-  editor.setModel(tab.model);
-  renderTabs();
-  updatePosition();
-  editor.focus();
+    const current = getActiveTab();
+    if (current) {
+        current.content = editor.getValue();
+    }
+
+    activeTabId = id;
+
+    const next = getActiveTab();
+    if (next) {
+        editor.setValue(next.content);
+        editor.focus();
+    }
+
+    renderTabs();
+    updateLineCount();
+}
+
+function addTab() {
+    const current = getActiveTab();
+    if (current && editor) {
+        current.content = editor.getValue();
+    }
+
+    const tab = {
+        id: nextId++,
+        name: "script" + nextId + ".lua",
+        content: ""
+    };
+
+    tabs.push(tab);
+    activeTabId = tab.id;
+
+    if (editor) {
+        editor.setValue("");
+        editor.focus();
+    }
+
+    renderTabs();
+    updateLineCount();
 }
 
 function closeTab(id) {
-  const index = tabs.findIndex(item => item.id === id);
-  if (index < 0) return;
+    if (tabs.length === 1) {
+        const onlyTab = tabs[0];
+        onlyTab.content = "";
+        if (editor && activeTabId === id) {
+            editor.setValue("");
+        }
+        renderTabs();
+        updateLineCount();
+        return;
+    }
 
-  const wasActive = activeTabId === id;
-  const [tab] = tabs.splice(index, 1);
-  tab.model.dispose();
+    const index = tabs.findIndex(function (tab) {
+        return tab.id === id;
+    });
 
-  if (tabs.length === 0) {
-    createTab();
-  } else if (wasActive) {
-    activateTab(tabs[Math.max(0, index - 1)].id);
-  } else {
+    if (index === -1) return;
+
+    const wasActive = activeTabId === id;
+    tabs.splice(index, 1);
+
+    if (wasActive) {
+        const next = tabs[Math.max(0, index - 1)];
+        activeTabId = next.id;
+
+        if (editor) {
+            editor.setValue(next.content);
+        }
+    }
+
     renderTabs();
-  }
+    updateLineCount();
 }
 
-function renameTab(id) {
-  const tab = tabs.find(item => item.id === id);
-  if (!tab) return;
+function renameTab(tab, nameElement) {
+    const input = document.createElement("input");
+    input.className = "rename-input";
+    input.value = tab.name;
+    input.maxLength = 48;
 
-  const name = prompt("Tab name:", tab.name);
+    nameElement.replaceWith(input);
+    input.focus();
+    input.select();
 
-  if (name && name.trim()) {
-    tab.name = name.trim();
-    renderTabs();
-  }
+    function finishRename() {
+        const newName = input.value.trim();
+        if (newName) {
+            tab.name = newName.endsWith(".lua")
+                ? newName
+                : newName + ".lua";
+        }
+
+        renderTabs();
+    }
+
+    input.addEventListener("keydown", function (event) {
+        if (event.key === "Enter") {
+            finishRename();
+        } else if (event.key === "Escape") {
+            renderTabs();
+        }
+    });
+
+    input.addEventListener("blur", finishRename);
 }
 
-function updatePosition() {
-  if (!editor) return;
+function updateLineCount() {
+    if (!editor) return;
 
-  const position = editor.getPosition();
-  if (!position) return;
-
-  $("position").textContent =
-    `Ln ${position.lineNumber}, Col ${position.column}`;
+    const lines = editor.getModel().getLineCount();
+    lineCount.textContent = lines + (lines === 1 ? " line" : " lines");
 }
 
-$("addTab").addEventListener("click", () => createTab());
-
-require.config({
-  paths: {
-    vs: "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs"
-  }
-});
-
-require(["vs/editor/editor.main"], function () {
-  monaco.languages.register({ id: "lua" });
-
-  monaco.languages.setMonarchTokensProvider("lua", {
-    keywords: [
-      "and", "break", "do", "else", "elseif", "end",
-      "false", "for", "function", "if", "in", "local",
-      "nil", "not", "or", "repeat", "return", "then",
-      "true", "until", "while"
-    ],
-
-    builtins: [
-      "assert", "error", "ipairs", "pairs", "pcall",
-      "print", "require", "select", "tonumber", "tostring",
-      "type", "xpcall", "coroutine", "string", "table",
-      "math", "io", "os", "debug"
-    ],
-
-    tokenizer: {
-      root: [
-        [/--\[\[/, "comment", "@longComment"],
-        [/--.*$/, "comment"],
-        [/"([^"\\]|\\.)*"/, "string"],
-        [/'([^'\\]|\\.)*'/, "string"],
-        [/\d+(\.\d+)?/, "number"],
-
-        [/[a-zA-Z_]\w*/, {
-          cases: {
-            "@keywords": "keyword",
-            "@builtins": "type.identifier",
-            "@default": "identifier"
-          }
-        }],
-
-        [/[{}()\[\]]/, "@brackets"],
-        [/[+\-*\/%^#=<>~]+/, "operator"],
-        [/[;,.]/, "delimiter"]
-      ],
-
-      longComment: [
-        [/[^\]]+/, "comment"],
-        [/\]\]/, "comment", "@pop"],
-        [/./, "comment"]
-      ]
-    }
-  });
-
-  monaco.languages.registerCompletionItemProvider("lua", {
-    triggerCharacters: [".", ":"],
-
-    provideCompletionItems() {
-      const items = [
-        ["print", "print(${1:value})"],
-        ["local", "local ${1:name} = ${2:value}"],
-        ["function", "function ${1:name}(${2:args})\n\t${3}\nend"],
-        ["if", "if ${1:condition} then\n\t${2}\nend"],
-        ["for", "for ${1:i} = ${2:1}, ${3:10} do\n\t${4}\nend"],
-        ["pairs", "pairs(${1:table})"],
-        ["ipairs", "ipairs(${1:table})"],
-        ["return", "return ${1:value}"],
-        ["require", "require('${1:module}')"]
-      ];
-
-      return {
-        suggestions: items.map(([label, insertText]) => ({
-          label,
-          insertText,
-          kind: monaco.languages.CompletionItemKind.Function,
-          insertTextRules:
-            monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet
-        }))
-      };
-    }
-  });
-
-  monaco.editor.defineTheme("dark-custom", {
-    base: "vs-dark",
-    inherit: true,
-
-    rules: [
-      { token: "keyword", foreground: "4FC1E9" },
-      { token: "string", foreground: "8DC891" },
-      { token: "number", foreground: "B5CEA8" },
-      { token: "comment", foreground: "777777", fontStyle: "italic" },
-      { token: "type.identifier", foreground: "8DC891" }
-    ],
-
-    colors: {
-      "editor.background": "#0d0d0d",
-      "editor.foreground": "#d4d4d4",
-      "editorLineNumber.foreground": "#656565",
-      "editorLineNumber.activeForeground": "#c5c5c5",
-      "editorCursor.foreground": "#eeeeee",
-      "editor.lineHighlightBackground": "#111111",
-      "editor.selectionBackground": "#333333",
-      "editor.inactiveSelectionBackground": "#252525",
-      "editorIndentGuide.background1": "#222222",
-      "editorIndentGuide.activeBackground1": "#444444",
-      "editorWidget.background": "#161616",
-      "editorWidget.border": "#303030",
-      "focusBorder": "#454545"
-    }
-  });
-
-  editor = monaco.editor.create($("editor"), {
-    model: null,
-    theme: "dark-custom",
-    automaticLayout: true,
-    fontFamily: "Consolas, monospace",
-    fontSize: 14,
-    lineNumbers: "on",
-    lineNumbersMinChars: 3,
-    minimap: { enabled: false },
-    scrollBeyondLastLine: false,
-    smoothScrolling: true,
-    cursorSmoothCaretAnimation: "on",
-    cursorBlinking: "smooth",
-    renderLineHighlight: "line",
-    roundedSelection: false,
-    wordWrap: "off",
-    tabSize: 4,
-    insertSpaces: true,
-    padding: { top: 10, bottom: 8 },
-    folding: true,
-    glyphMargin: false,
-    overviewRulerBorder: false,
-    hideCursorInOverviewRuler: true,
-    scrollbar: {
-      verticalScrollbarSize: 8,
-      horizontalScrollbarSize: 8,
-      useShadows: false
-    },
-    quickSuggestions: true,
-    parameterHints: { enabled: true }
-  });
-
-  editor.onDidChangeCursorPosition(updatePosition);
-
-  createTab();
-
-  $("indent").textContent = "Spaces: 4";
-});
+document.getElementById("add-tab").addEventListener("click", addTab);
 </script>
 </body>
 </html>
+```
