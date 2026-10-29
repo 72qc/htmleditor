@@ -1,539 +1,1095 @@
-```html
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Monaco Editor</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Lucent Editor</title>
 
 <style>
+:root {
+  --bg: #0f0f0f;
+  --bg2: #141414;
+  --bg3: #1b1b1b;
+  --line: #242424;
+  --line2: #343434;
+  --text: #e8e8ea;
+  --muted: #8a8a90;
+  --accent: #ffffff;
+}
+
 * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
+  box-sizing: border-box;
+  margin: 0;
 }
 
 html, body {
-    width: 868px;
-    height: 436px;
-    min-width: 868px;
-    min-height: 436px;
-    max-width: 868px;
-    max-height: 436px;
-    overflow: hidden;
-    background: #0f0f0f;
-    color: #d4d4d4;
-    font-family: "Segoe UI", sans-serif;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+}
+
+svg.i {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+
+.hide {
+  display: none !important;
 }
 
 #app {
-    width: 868px;
-    height: 436px;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    background: #0f0f0f;
-    border: 1px solid #292929;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Tab bar */
-#tabbar {
-    height: 36px;
-    min-height: 36px;
-    display: flex;
-    align-items: stretch;
-    background: #111111;
-    border-bottom: 1px solid #292929;
-    overflow: hidden;
+
+#bar {
+  display: flex;
+  align-items: stretch;
+  height: 42px;
+  flex-shrink: 0;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
 }
 
 #tabs {
-    display: flex;
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: stretch;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+#tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .tab {
-    height: 35px;
-    min-width: 100px;
-    max-width: 180px;
-    padding: 0 13px;
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    border-right: 1px solid #242424;
-    color: #777777;
-    font-size: 12px;
-    cursor: pointer;
-    user-select: none;
-    white-space: nowrap;
-    overflow: hidden;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 110px;
+  max-width: 220px;
+  padding: 0 8px 0 13px;
+  border-right: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+  flex-shrink: 0;
+  user-select: none;
+  transition: background .15s, color .15s;
+  animation: tin .22s both;
+}
+
+@keyframes tin {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
 }
 
 .tab:hover {
-    background: #171717;
-    color: #bbbbbb;
+  background: var(--bg2);
+  color: #d6d6da;
 }
 
-.tab.active {
-    background: #0f0f0f;
-    color: #eeeeee;
-    border-top: 2px solid #d6d6d6;
-    height: 36px;
+.tab.on {
+  background: var(--bg3);
+  color: #fff;
 }
 
-.tab-name {
-    overflow: hidden;
-    text-overflow: ellipsis;
+.tab.on::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 2px;
+  background: var(--accent);
 }
 
-.tab-close {
-    margin-left: auto;
-    color: #777777;
-    font-size: 15px;
-    line-height: 1;
-    padding: 2px;
+.tab.over::before {
+  content: '';
+  position: absolute;
+  left: -1px;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background: #8ab4ff;
+  border-radius: 2px;
 }
 
-.tab-close:hover {
-    color: #ffffff;
+.tab.drag {
+  opacity: .4;
 }
 
-#add-tab {
-    width: 38px;
-    min-width: 38px;
-    border: none;
-    outline: none;
-    background: transparent;
-    color: #858585;
-    font-size: 20px;
-    cursor: pointer;
+.tab .nm {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-#add-tab:hover {
-    background: #1b1b1b;
-    color: #ffffff;
+.tab .x {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  font-size: 11px;
+  opacity: 0;
+  transition: opacity .15s, background .15s;
+}
+
+.tab:hover .x,
+.tab.on .x {
+  opacity: .65;
+}
+
+.tab .x:hover {
+  opacity: 1;
+  background: rgba(255,255,255,.14);
+}
+
+#add {
+  width: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color .15s, background .15s;
+}
+
+#add:hover {
+  color: #fff;
+  background: var(--bg2);
 }
 
 /* Editor */
+
 #editor {
-    width: 100%;
-    height: 377px;
-    min-height: 0;
-    flex: 1;
-    overflow: hidden;
-    background: #0f0f0f;
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+#loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 13px;
+  background: var(--bg);
 }
 
 /* Status bar */
-#statusbar {
-    height: 23px;
-    min-height: 23px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 10px;
-    background: #111111;
-    border-top: 1px solid #292929;
-    color: #777777;
-    font-size: 10px;
-    user-select: none;
+
+#status {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  height: 26px;
+  padding: 0 14px;
+  flex-shrink: 0;
+  background: var(--bg);
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--muted);
 }
 
-.status-left, .status-right {
-    display: flex;
-    align-items: center;
-    gap: 13px;
+#status .sp {
+  flex: 1;
 }
 
-.status-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #8a8a8a;
-    display: inline-block;
-    margin-right: 5px;
+#status b {
+  color: #c9c9ce;
+  font-weight: 500;
 }
 
-input.rename-input {
-    width: 110px;
-    border: 1px solid #444444;
-    outline: none;
-    background: #181818;
-    color: #ffffff;
-    font: inherit;
-    padding: 2px 4px;
+/* Tab context menu */
+
+#menu {
+  position: fixed;
+  z-index: 40;
+  min-width: 168px;
+  padding: 5px;
+  background: #161616;
+  border: 1px solid var(--line2);
+  border-radius: 10px;
+  box-shadow: 0 14px 40px rgba(0,0,0,.6);
+  animation: tin .12s both;
+}
+
+#menu div {
+  padding: 7px 11px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+#menu div:hover {
+  background: rgba(255,255,255,.09);
+}
+
+#menu small {
+  color: var(--muted);
+}
+
+#menu hr {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 4px 2px;
+}
+
+/* Notifications */
+
+#toast {
+  position: fixed;
+  left: 50%;
+  bottom: 42px;
+  transform: translate(-50%, 14px);
+  padding: 8px 16px;
+  border-radius: 10px;
+  background: #1c1c1c;
+  border: 1px solid var(--line2);
+  font-size: 13px;
+  opacity: 0;
+  transition: opacity .25s, transform .25s;
+  z-index: 50;
+  pointer-events: none;
+}
+
+#toast.on {
+  opacity: 1;
+  transform: translate(-50%, 0);
 }
 </style>
+
+<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/min/vs/loader.js"></script>
 </head>
 
 <body>
 <div id="app">
 
-    <div id="tabbar">
-        <div id="tabs"></div>
-        <button id="add-tab" title="New tab">+</button>
-    </div>
+  <div id="bar">
+    <div id="tabs"></div>
+  </div>
 
-    <div id="editor"></div>
+  <div id="editor">
+    <div id="loading">Loading Lucent...</div>
+  </div>
 
-    <div id="statusbar">
-        <div class="status-left">
-            <span><span class="status-dot"></span>Ready</span>
-            <span id="cursor-position">Ln 1, Col 1</span>
-        </div>
-        <div class="status-right">
-            <span>Lua</span>
-            <span>UTF-8</span>
-            <span id="line-count">1 line</span>
-        </div>
-    </div>
+  <div id="status">
+    <span id="stName"><b></b></span>
+    <span class="sp"></span>
+    <span id="stPos">Ln 1, Col 1</span>
+    <span id="stTab">Spaces: 2</span>
+    <span>UTF-8</span>
+    <span>Lua</span>
+  </div>
 
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.min.js"></script>
+<div id="menu" class="hide"></div>
+<div id="toast"></div>
 
 <script>
-require.config({
-    paths: {
-        vs: "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs"
+const $ = id => document.getElementById(id);
+
+const mk = (tag, cls, html) => {
+  const el = document.createElement(tag);
+  if (cls) el.className = cls;
+  if (html !== undefined) el.innerHTML = html;
+  return el;
+};
+
+const ls = {
+  get(key, fallback) {
+    try {
+      const value = JSON.parse(localStorage.getItem(key));
+      return value == null ? fallback : value;
+    } catch {
+      return fallback;
     }
-});
+  },
 
-let editor;
-let nextId = 2;
-let activeTabId = 1;
+  set(key, value) {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch {}
+  }
+};
 
-const tabs = [
-    {
-        id: 1,
-        name: "main.lua",
-        content: ""
-    }
-];
+const uid = () => Math.random().toString(36).slice(2, 9);
 
-const editorElement = document.getElementById("editor");
-const tabsElement = document.getElementById("tabs");
-const cursorPosition = document.getElementById("cursor-position");
-const lineCount = document.getElementById("line-count");
+/* Lucent welcome script */
 
-require(["vs/editor/editor.main"], function () {
-    monaco.languages.register({ id: "lua" });
+const WELCOME = `-- Welcome to Lucent
+-- A lightweight environment for writing Lua.
+-- Your next idea starts here.
 
-    monaco.languages.setMonarchTokensProvider("lua", {
-        keywords: [
-            "and", "break", "do", "else", "elseif", "end",
-            "false", "for", "function", "if", "in", "local",
-            "nil", "not", "or", "repeat", "return", "then",
-            "true", "until", "while"
-        ],
+local function welcome()
+    local message = "Welcome To Lucent"
 
-        builtins: [
-            "print", "pairs", "ipairs", "next", "type",
-            "tostring", "tonumber", "select", "unpack",
-            "pcall", "xpcall", "error", "assert",
-            "math", "string", "table", "coroutine",
-            "os", "io", "debug", "require"
-        ],
+    print("================================")
+    print("       Welcome To Lucent")
+    print("================================")
+    print("Your workspace is ready.")
+    print("Start writing, experimenting,")
+    print("and building something new.")
+    print("================================")
 
-        operators: [
-            "+", "-", "*", "/", "%", "^", "#", "==",
-            "~=", "<=", ">=", "<", ">", "=", "..", "..."
-        ],
+    return message
+end
 
-        tokenizer: {
-            root: [
-                [/--\[\[/, "comment", "@commentBlock"],
-                [/--.*$/, "comment"],
-                [/\[(=*)\[/, {
-                    token: "string",
-                    next: "@stringBlock.$1"
-                }],
-                [/"([^"\\]|\\.)*$/, "string.invalid"],
-                [/'([^'\\]|\\.)*$/, "string.invalid"],
-                [/"([^"\\]|\\.)*"/, "string"],
-                [/'([^'\\]|\\.)*'/, "string"],
-                [/\d+(\.\d+)?([eE][\-+]?\d+)?/, "number"],
-                [/[a-zA-Z_]\w*/, {
-                    cases: {
-                        "@keywords": "keyword",
-                        "@builtins": "predefined",
-                        "@default": "identifier"
-                    }
-                }],
-                [/[+\-*\/%#^=<>~]+/, "operator"],
-                [/[{}()\[\]]/, "@brackets"],
-                [/[;,.]/, "delimiter"]
-            ],
+local greeting = welcome()
 
-            commentBlock: [
-                [/\]\]/, "comment", "@pop"],
-                [/./, "comment"]
-            ],
+print(greeting)
+`;
 
-            stringBlock: [
-                [/\](@$)\]/, "string", "@pop"],
-                [/./, "string"]
-            ]
-        }
-    });
+let tabs = [];
+let active = null;
+let editor = null;
+let renaming = false;
 
-    monaco.editor.defineTheme("erys-dark", {
-        base: "vs-dark",
-        inherit: true,
-        rules: [
-            { token: "keyword", foreground: "C586C0" },
-            { token: "predefined", foreground: "DCDCAA" },
-            { token: "comment", foreground: "6A9955" },
-            { token: "string", foreground: "CE9178" },
-            { token: "number", foreground: "B5CEA8" }
-        ],
-        colors: {
-            "editor.background": "#0f0f0f",
-            "editor.foreground": "#d4d4d4",
-            "editorLineNumber.foreground": "#505050",
-            "editorLineNumber.activeForeground": "#bdbdbd",
-            "editorCursor.foreground": "#ffffff",
-            "editor.selectionBackground": "#333333",
-            "editor.lineHighlightBackground": "#141414",
-            "editorIndentGuide.background": "#252525",
-            "editorIndentGuide.activeBackground": "#3a3a3a",
-            "editorGutter.background": "#0f0f0f",
-            "editorWidget.background": "#151515",
-            "editorWidget.border": "#303030"
-        }
-    });
+/* Notifications */
 
-    editor = monaco.editor.create(editorElement, {
-        value: "",
-        language: "lua",
-        theme: "erys-dark",
-        automaticLayout: true,
-        minimap: { enabled: false },
-        fontSize: 13,
-        fontFamily: "Consolas, 'Courier New', monospace",
-        lineHeight: 20,
-        tabSize: 4,
-        insertSpaces: true,
-        wordWrap: "off",
-        scrollBeyondLastLine: false,
-        renderLineHighlight: "line",
-        roundedSelection: false,
-        padding: {
-            top: 10,
-            bottom: 8
-        },
-        folding: true,
-        glyphMargin: false,
-        lineNumbers: "on",
-        overviewRulerLanes: 0,
-        hideCursorInOverviewRuler: true,
-        overviewRulerBorder: false,
-        contextmenu: true,
-        smoothScrolling: true,
-        cursorBlinking: "smooth",
-        bracketPairColorization: {
-            enabled: true
-        },
-        guides: {
-            indentation: true,
-            bracketPairs: true
-        },
-        scrollbar: {
-            verticalScrollbarSize: 7,
-            horizontalScrollbarSize: 7,
-            useShadows: false
-        }
-    });
+let toastTimer;
 
-    editor.onDidChangeCursorPosition(function (event) {
-        cursorPosition.textContent =
-            "Ln " + event.position.lineNumber +
-            ", Col " + event.position.column;
-    });
+function toast(message) {
+  const el = $('toast');
 
-    editor.onDidChangeModelContent(function () {
-        const tab = getActiveTab();
-        if (tab) {
-            tab.content = editor.getValue();
-        }
+  el.textContent = message;
+  el.classList.add('on');
 
-        updateLineCount();
-    });
+  clearTimeout(toastTimer);
 
-    renderTabs();
-    updateLineCount();
-
-    window.addEventListener("resize", function () {
-        editor.layout();
-    });
-});
-
-function getActiveTab() {
-    return tabs.find(function (tab) {
-        return tab.id === activeTabId;
-    });
+  toastTimer = setTimeout(() => {
+    el.classList.remove('on');
+  }, 1800);
 }
 
-function renderTabs() {
-    tabsElement.innerHTML = "";
+const cur = () => tabs.find(tab => tab.id === active);
 
-    tabs.forEach(function (tab) {
-        const element = document.createElement("div");
-        element.className = "tab" +
-            (tab.id === activeTabId ? " active" : "");
+/* Automatic local persistence */
 
-        const name = document.createElement("span");
-        name.className = "tab-name";
-        name.textContent = tab.name;
-        name.title = "Double-click to rename";
+function persist() {
+  clearTimeout(persist.timer);
 
-        name.addEventListener("dblclick", function (event) {
-            event.stopPropagation();
-            renameTab(tab, name);
-        });
-
-        const close = document.createElement("span");
-        close.className = "tab-close";
-        close.textContent = "×";
-        close.title = "Close tab";
-
-        close.addEventListener("click", function (event) {
-            event.stopPropagation();
-            closeTab(tab.id);
-        });
-
-        element.appendChild(name);
-        element.appendChild(close);
-
-        element.addEventListener("click", function () {
-            switchTab(tab.id);
-        });
-
-        tabsElement.appendChild(element);
+  persist.timer = setTimeout(() => {
+    ls.set('lucent.state', {
+      active,
+      tabs: tabs.map(tab => ({
+        id: tab.id,
+        name: tab.name,
+        content: tab.model.getValue()
+      }))
     });
+  }, 250);
 }
 
-function switchTab(id) {
-    if (!editor || id === activeTabId) return;
+/* Tabs */
 
-    const current = getActiveTab();
-    if (current) {
-        current.content = editor.getValue();
-    }
+function uniqueName(base) {
+  const strip = base.replace(/\.lua$/i, '');
+  let name = base;
+  let count = 2;
 
-    activeTabId = id;
+  while (tabs.some(tab => tab.name === name)) {
+    name = strip + ' ' + count++ +
+      (/\.lua$/i.test(base) ? '.lua' : '');
+  }
 
-    const next = getActiveTab();
-    if (next) {
-        editor.setValue(next.content);
-        editor.focus();
-    }
-
-    renderTabs();
-    updateLineCount();
+  return name;
 }
 
-function addTab() {
-    const current = getActiveTab();
-    if (current && editor) {
-        current.content = editor.getValue();
-    }
+function addTab(name, content, id) {
+  const tab = {
+    id: id || uid(),
+    name: name || uniqueName('Script.lua'),
+    model: monaco.editor.createModel(
+      content == null ? '' : content,
+      'lua'
+    ),
+    fresh: true
+  };
 
-    const tab = {
-        id: nextId++,
-        name: "script" + nextId + ".lua",
-        content: ""
-    };
+  tab.model.onDidChangeContent(persist);
 
-    tabs.push(tab);
-    activeTabId = tab.id;
+  tabs.push(tab);
+  return tab;
+}
 
-    if (editor) {
-        editor.setValue("");
-        editor.focus();
-    }
+function newTab(name, content) {
+  const tab = addTab(name || uniqueName('Script.lua'), content);
 
-    renderTabs();
-    updateLineCount();
+  select(tab.id);
+  persist();
+
+  const el = document.querySelector(
+    '.tab[data-id="' + tab.id + '"]'
+  );
+
+  if (el) {
+    el.scrollIntoView({ inline: 'nearest' });
+  }
+
+  editor.focus();
+  return tab;
+}
+
+function select(id) {
+  const previous = cur();
+
+  if (previous && editor) {
+    previous.view = editor.saveViewState();
+  }
+
+  active = id;
+
+  const tab = cur();
+
+  if (!tab || !editor) return;
+
+  editor.setModel(tab.model);
+
+  if (tab.view) {
+    editor.restoreViewState(tab.view);
+  }
+
+  render();
+  updateStatus();
+  editor.focus();
+  persist();
 }
 
 function closeTab(id) {
-    if (tabs.length === 1) {
-        const onlyTab = tabs[0];
-        onlyTab.content = "";
-        if (editor && activeTabId === id) {
-            editor.setValue("");
-        }
-        renderTabs();
-        updateLineCount();
+  const index = tabs.findIndex(tab => tab.id === id);
+
+  if (index < 0) return;
+
+  const wasActive = id === active;
+  const tab = tabs[index];
+
+  tabs.splice(index, 1);
+
+  if (!tabs.length) {
+    tab.model.dispose();
+
+    const replacement = addTab('Script.lua', '');
+    select(replacement.id);
+    persist();
+    return;
+  }
+
+  if (wasActive) {
+    const next = tabs[Math.min(index, tabs.length - 1)];
+
+    active = null;
+    select(next.id);
+  } else {
+    render();
+  }
+
+  setTimeout(() => tab.model.dispose(), 0);
+  persist();
+}
+
+function render() {
+  const bar = $('tabs');
+  bar.innerHTML = '';
+
+  tabs.forEach(tab => {
+    const el = mk(
+      'div',
+      'tab' + (tab.id === active ? ' on' : ''),
+      '<svg class="i" viewBox="0 0 24 24">' +
+        '<path d="M6 3h8l4 4v14H6z"/>' +
+        '<path d="M14 3v4h4"/>' +
+      '</svg>' +
+      '<span class="nm"></span>' +
+      '<span class="x" title="Close">&#10005;</span>'
+    );
+
+    el.dataset.id = tab.id;
+    el.draggable = true;
+
+    el.querySelector('.nm').textContent = tab.name;
+    el.title = tab.name + ' (double-click to rename)';
+
+    if (!tab.fresh) {
+      el.style.animation = 'none';
+    }
+
+    tab.fresh = false;
+
+    el.onclick = event => {
+      if (event.target.closest('.x')) {
+        closeTab(tab.id);
         return;
+      }
+
+      if (tab.id !== active) {
+        select(tab.id);
+      }
+    };
+
+    el.ondblclick = event => {
+      if (!event.target.closest('.x')) {
+        startRename(tab.id);
+      }
+    };
+
+    el.onauxclick = event => {
+      if (event.button === 1) {
+        closeTab(tab.id);
+      }
+    };
+
+    el.oncontextmenu = event => {
+      event.preventDefault();
+      showMenu(event.clientX, event.clientY, tab.id);
+    };
+
+    el.ondragstart = event => {
+      if (renaming) {
+        event.preventDefault();
+        return;
+      }
+
+      el.classList.add('drag');
+
+      try {
+        event.dataTransfer.setData('text/plain', tab.id);
+        event.dataTransfer.effectAllowed = 'move';
+      } catch {}
+
+      render.drag = tab.id;
+    };
+
+    el.ondragend = () => {
+      el.classList.remove('drag');
+
+      document.querySelectorAll('.tab.over').forEach(item => {
+        item.classList.remove('over');
+      });
+
+      render.drag = null;
+    };
+
+    el.ondragover = event => {
+      if (!render.drag) return;
+
+      event.preventDefault();
+
+      document.querySelectorAll('.tab.over').forEach(item => {
+        item.classList.remove('over');
+      });
+
+      el.classList.add('over');
+    };
+
+    el.ondrop = event => {
+      event.preventDefault();
+
+      const from = render.drag;
+      render.drag = null;
+
+      if (from && from !== tab.id) {
+        moveTab(from, tab.id);
+      }
+    };
+
+    bar.appendChild(el);
+  });
+
+  const add = mk(
+    'div',
+    '',
+    '<svg class="i" viewBox="0 0 24 24">' +
+      '<path d="M12 5v14M5 12h14"/>' +
+    '</svg>'
+  );
+
+  add.id = 'add';
+  add.title = 'New tab (Ctrl+T)';
+  add.onclick = () => newTab();
+
+  bar.appendChild(add);
+}
+
+function moveTab(fromId, beforeId) {
+  const fromIndex = tabs.findIndex(tab => tab.id === fromId);
+
+  if (fromIndex < 0) return;
+
+  const item = tabs.splice(fromIndex, 1)[0];
+  const beforeIndex = tabs.findIndex(tab => tab.id === beforeId);
+
+  tabs.splice(beforeIndex, 0, item);
+
+  render();
+  persist();
+}
+
+$('tabs').addEventListener('wheel', event => {
+  if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
+    $('tabs').scrollLeft += event.deltaY;
+    event.preventDefault();
+  }
+}, { passive: false });
+
+/* Rename tabs */
+
+function startRename(id) {
+  if (renaming) return;
+
+  const tab = tabs.find(item => item.id === id);
+
+  if (!tab) return;
+
+  if (id !== active) {
+    select(id);
+  }
+
+  const el = document.querySelector(
+    '.tab[data-id="' + id + '"]'
+  );
+
+  if (!el) return;
+
+  const name = el.querySelector('.nm');
+  const input = mk('input');
+
+  input.value = tab.name;
+  input.maxLength = 40;
+  input.spellcheck = false;
+
+  renaming = true;
+
+  name.replaceWith(input);
+
+  input.style.flex = '1';
+  input.style.minWidth = '0';
+  input.style.width = '100%';
+  input.style.background = '#0a0a0a';
+  input.style.color = '#fff';
+  input.style.border = '1px solid #6b8cff';
+  input.style.borderRadius = '5px';
+  input.style.padding = '2px 6px';
+  input.style.font = 'inherit';
+  input.style.outline = 'none';
+
+  input.focus();
+  input.select();
+
+  let finished = false;
+
+  const finish = accept => {
+    if (finished) return;
+
+    finished = true;
+    renaming = false;
+
+    const value = input.value.trim()
+      .replace(/[\\/:*?"<>|]/g, '_');
+
+    if (accept && value && value !== tab.name) {
+      tab.name = tabs.some(
+        item => item !== tab && item.name === value
+      ) ? uniqueName(value) : value;
+
+      persist();
+      toast('Renamed to ' + tab.name);
     }
 
-    const index = tabs.findIndex(function (tab) {
-        return tab.id === id;
+    render();
+    updateStatus();
+
+    if (editor) editor.focus();
+  };
+
+  input.onkeydown = event => {
+    event.stopPropagation();
+
+    if (event.key === 'Enter') finish(true);
+    if (event.key === 'Escape') finish(false);
+  };
+
+  input.onblur = () => finish(true);
+  input.onclick = event => event.stopPropagation();
+  input.ondblclick = event => event.stopPropagation();
+  input.onmousedown = event => event.stopPropagation();
+  input.ondragstart = event => event.preventDefault();
+};
+
+/* Tab context menu */
+
+function showMenu(x, y, id) {
+  const menu = $('menu');
+  menu.innerHTML = '';
+
+  const item = (label, shortcut, action) => {
+    const el = mk(
+      'div',
+      '',
+      '<span></span><small></small>'
+    );
+
+    el.firstChild.textContent = label;
+    el.lastChild.textContent = shortcut || '';
+
+    el.onclick = () => {
+      hideMenu();
+      action();
+    };
+
+    menu.appendChild(el);
+  };
+
+  item('Rename', 'F2', () => startRename(id));
+
+  item('Duplicate', '', () => {
+    const tab = tabs.find(item => item.id === id);
+
+    if (tab) {
+      newTab(uniqueName(tab.name), tab.model.getValue());
+    }
+  });
+
+  menu.appendChild(mk('hr'));
+
+  item('Close', 'Ctrl+W', () => closeTab(id));
+
+  item('Close others', '', () => {
+    const others = tabs
+      .filter(tab => tab.id !== id)
+      .map(tab => tab.id);
+
+    others.forEach(closeTab);
+  });
+
+  item('Close all', '', () => {
+    [...tabs].forEach(tab => closeTab(tab.id));
+  });
+
+  menu.classList.remove('hide');
+
+  menu.style.left =
+    Math.max(0, Math.min(x, innerWidth - 190)) + 'px';
+
+  menu.style.top =
+    Math.max(0, Math.min(y, innerHeight - 190)) + 'px';
+}
+
+const hideMenu = () => $('menu').classList.add('hide');
+
+addEventListener('mousedown', event => {
+  if (!event.target.closest('#menu')) {
+    hideMenu();
+  }
+});
+
+addEventListener('blur', hideMenu);
+
+/* Keyboard shortcuts */
+
+addEventListener('keydown', event => {
+  const mod = event.ctrlKey || event.metaKey;
+  const key = event.key.toLowerCase();
+
+  if (event.key === 'F2') {
+    event.preventDefault();
+
+    if (active) startRename(active);
+  } else if (mod && key === 't') {
+    event.preventDefault();
+    newTab();
+  } else if (mod && key === 'w') {
+    event.preventDefault();
+
+    if (active) closeTab(active);
+  } else if (event.ctrlKey && event.key === 'Tab') {
+    event.preventDefault();
+
+    if (!tabs.length) return;
+
+    const index = tabs.findIndex(tab => tab.id === active);
+    const offset = event.shiftKey ? tabs.length - 1 : 1;
+
+    select(tabs[(index + offset) % tabs.length].id);
+  } else if (event.key === 'Escape') {
+    hideMenu();
+  }
+});
+
+/* Monaco editor setup */
+
+const CDN =
+  'https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/min/';
+
+self.MonacoEnvironment = {
+  getWorkerUrl: () =>
+    'data:text/javascript;charset=utf-8,' +
+    encodeURIComponent(
+      "self.MonacoEnvironment={baseUrl:'" + CDN +
+      "'};importScripts('" + CDN +
+      "vs/base/worker/workerMain.js');"
+    )
+};
+
+require.config({
+  paths: {
+    vs: CDN + 'vs'
+  }
+});
+
+require(['vs/editor/editor.main'], () => {
+
+  monaco.editor.defineTheme('lucent', {
+    base: 'vs-dark',
+    inherit: false,
+
+    rules: [
+      { token: '', foreground: 'E6E6EA' },
+      { token: 'comment', foreground: '5F6672', fontStyle: 'italic' },
+      { token: 'keyword', foreground: 'C792EA' },
+      { token: 'string', foreground: 'C3E88D' },
+      { token: 'string.escape', foreground: '89DDFF' },
+      { token: 'number', foreground: 'F78C6C' },
+      { token: 'identifier', foreground: 'E6E6EA' },
+      { token: 'delimiter', foreground: '9AA3B2' },
+      { token: 'delimiter.bracket', foreground: 'FFD479' },
+      { token: 'delimiter.parenthesis', foreground: 'FFD479' },
+      { token: 'delimiter.square', foreground: 'FFD479' },
+      { token: 'operator', foreground: '89DDFF' },
+      { token: 'predefined', foreground: '82AAFF' },
+      { token: 'type.identifier', foreground: 'FFCB6B' }
+    ],
+
+    colors: {
+      'editor.background': '#0f0f0f',
+      'editorGutter.background': '#0f0f0f',
+      'minimap.background': '#0f0f0f',
+      'editor.lineHighlightBackground': '#171717',
+      'editor.lineHighlightBorder': '#00000000',
+      'editor.selectionBackground': '#ffffff26',
+      'editor.inactiveSelectionBackground': '#ffffff14',
+      'editorCursor.foreground': '#ffffff',
+      'editorLineNumber.foreground': '#4b4b52',
+      'editorLineNumber.activeForeground': '#d6d6dc',
+      'editorIndentGuide.background1': '#222222',
+      'editorIndentGuide.activeBackground1': '#3a3a3a',
+      'editorBracketMatch.background': '#ffffff1a',
+      'editorBracketMatch.border': '#ffffff40',
+      'editorWidget.background': '#141414',
+      'editorWidget.border': '#2a2a2a',
+      'editorSuggestWidget.background': '#141414',
+      'editorSuggestWidget.border': '#2a2a2a',
+      'editorSuggestWidget.selectedBackground': '#262626',
+      'editorHoverWidget.background': '#141414',
+      'input.background': '#0a0a0a',
+      'scrollbarSlider.background': '#ffffff1a',
+      'scrollbarSlider.hoverBackground': '#ffffff2e',
+      'scrollbarSlider.activeBackground': '#ffffff40',
+      'scrollbar.shadow': '#00000000'
+    }
+  });
+
+  editor = monaco.editor.create($('editor'), {
+    language: 'lua',
+    theme: 'lucent',
+    automaticLayout: true,
+
+    fontFamily:
+      "'JetBrains Mono', 'Cascadia Code', Consolas, monospace",
+
+    fontSize: 14,
+    lineHeight: 23,
+    tabSize: 2,
+    wordWrap: 'off',
+    minimap: { enabled: false },
+    fontLigatures: true,
+    renderLineHighlight: 'all',
+    scrollBeyondLastLine: false,
+    padding: { top: 14, bottom: 14 },
+    smoothScrolling: true,
+    cursorSmoothCaretAnimation: 'on',
+    cursorBlinking: 'smooth',
+    bracketPairColorization: { enabled: true },
+    guides: {
+      indentation: true,
+      bracketPairs: true
+    },
+    lineNumbersMinChars: 3,
+    glyphMargin: false,
+    folding: true,
+    roundedSelection: true,
+
+    scrollbar: {
+      verticalScrollbarSize: 10,
+      horizontalScrollbarSize: 10
+    }
+  });
+
+  /* Lua autocomplete */
+
+  const K = monaco.languages.CompletionItemKind;
+  const SN = monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet;
+
+  const SNIP = [
+    ['print', 'print(${1:value})'],
+    ['local', 'local ${1:name} = ${2:value}'],
+    ['function', 'local function ${1:name}(${2:args})\n\t$0\nend'],
+    ['if', 'if ${1:condition} then\n\t$0\nend'],
+    ['ifelse', 'if ${1:condition} then\n\t$2\nelse\n\t$0\nend'],
+    ['for', 'for ${1:i} = ${2:1}, ${3:10} do\n\t$0\nend'],
+    ['forp', 'for ${1:k}, ${2:v} in pairs(${3:t}) do\n\t$0\nend'],
+    ['fori', 'for ${1:i}, ${2:v} in ipairs(${3:t}) do\n\t$0\nend'],
+    ['while', 'while ${1:condition} do\n\t$0\nend'],
+    ['pcall', 'local ok, err = pcall(function()\n\t$0\nend)'],
+    ['table', 'local ${1:t} = {\n\t$0\n}']
+  ];
+
+  const LIB = {
+    string: [
+      'sub', 'len', 'upper', 'lower', 'format', 'find',
+      'match', 'gmatch', 'gsub', 'rep', 'reverse', 'byte', 'char'
+    ],
+
+    table: [
+      'insert', 'remove', 'concat', 'sort', 'unpack', 'pack'
+    ],
+
+    math: [
+      'floor', 'ceil', 'abs', 'sqrt', 'sin', 'cos', 'tan',
+      'random', 'randomseed', 'max', 'min', 'huge', 'pi', 'fmod'
+    ],
+
+    os: [
+      'time', 'clock', 'date'
+    ]
+  };
+
+  monaco.languages.registerCompletionItemProvider('lua', {
+    triggerCharacters: ['.'],
+
+    provideCompletionItems: (model, position) => {
+      const word = model.getWordUntilPosition(position);
+
+      const range = {
+        startLineNumber: position.lineNumber,
+        endLineNumber: position.lineNumber,
+        startColumn: word.startColumn,
+        endColumn: word.endColumn
+      };
+
+      const before = model
+        .getLineContent(position.lineNumber)
+        .slice(0, position.column - 1);
+
+      const match = before.match(/([a-z]+)\.\w*$/);
+
+      if (match && LIB[match[1]]) {
+        return {
+          suggestions: LIB[match[1]].map(name => ({
+            label: name,
+            kind: K.Function,
+            insertText: name,
+            range
+          }))
+        };
+      }
+
+      return {
+        suggestions: SNIP.map(([label, text]) => ({
+          label,
+          kind: K.Snippet,
+          insertText: text,
+          insertTextRules: SN,
+          range
+        })).concat(
+          Object.keys(LIB).map(name => ({
+            label: name,
+            kind: K.Module,
+            insertText: name,
+            range
+          }))
+        )
+      };
+    }
+  });
+
+  /* Status bar */
+
+  editor.onDidChangeCursorPosition(updateStatus);
+
+  /* Restore tabs and editor contents */
+
+  const saved = ls.get('lucent.state', null);
+
+  if (saved && saved.tabs && saved.tabs.length) {
+    saved.tabs.forEach(tab => {
+      addTab(tab.name, tab.content, tab.id);
     });
 
-    if (index === -1) return;
+    select(
+      tabs.some(tab => tab.id === saved.active)
+        ? saved.active
+        : tabs[0].id
+    );
+  } else {
+    const tab = addTab('Welcome.lua', WELCOME);
+    select(tab.id);
+  }
 
-    const wasActive = activeTabId === id;
-    tabs.splice(index, 1);
+  const loading = $('loading');
 
-    if (wasActive) {
-        const next = tabs[Math.max(0, index - 1)];
-        activeTabId = next.id;
+  if (loading) loading.remove();
 
-        if (editor) {
-            editor.setValue(next.content);
-        }
+  editor.focus();
+});
+
+function updateStatus() {
+  const tab = cur();
+
+  document.querySelector('#stName b').textContent =
+    tab ? tab.name : '';
+
+  if (editor && tab) {
+    const position = editor.getPosition();
+
+    if (position) {
+      $('stPos').textContent =
+        'Ln ' + position.lineNumber +
+        ', Col ' + position.column;
     }
-
-    renderTabs();
-    updateLineCount();
+  }
 }
-
-function renameTab(tab, nameElement) {
-    const input = document.createElement("input");
-    input.className = "rename-input";
-    input.value = tab.name;
-    input.maxLength = 48;
-
-    nameElement.replaceWith(input);
-    input.focus();
-    input.select();
-
-    function finishRename() {
-        const newName = input.value.trim();
-        if (newName) {
-            tab.name = newName.endsWith(".lua")
-                ? newName
-                : newName + ".lua";
-        }
-
-        renderTabs();
-    }
-
-    input.addEventListener("keydown", function (event) {
-        if (event.key === "Enter") {
-            finishRename();
-        } else if (event.key === "Escape") {
-            renderTabs();
-        }
-    });
-
-    input.addEventListener("blur", finishRename);
-}
-
-function updateLineCount() {
-    if (!editor) return;
-
-    const lines = editor.getModel().getLineCount();
-    lineCount.textContent = lines + (lines === 1 ? " line" : " lines");
-}
-
-document.getElementById("add-tab").addEventListener("click", addTab);
 </script>
 </body>
 </html>
-```
