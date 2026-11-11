@@ -1,1095 +1,233 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="dark">
-<title>Lucent Editor</title>
-
+<title>Lua Editor</title>
 <style>
-:root {
-  --bg: #0f0f0f;
-  --bg2: #141414;
-  --bg3: #1b1b1b;
-  --line: #242424;
-  --line2: #343434;
-  --text: #e8e8ea;
-  --muted: #8a8a90;
-  --accent: #ffffff;
-}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#000;color:#ddd;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;overflow:hidden}
+#app{display:flex;flex-direction:column;height:100%;opacity:0;animation:boot .7s .1s ease forwards}
+@keyframes boot{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-}
+/* tab bar */
+#bar{display:flex;align-items:stretch;border-bottom:1px solid #161616;background:#000;flex:none;height:40px}
+#tabs{position:relative;display:flex;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;flex:0 1 auto;max-width:calc(100% - 44px)}
+#tabs::-webkit-scrollbar{display:none}
+.tab{display:flex;align-items:center;gap:8px;padding:0 10px 0 14px;height:40px;color:#6b6b6b;cursor:pointer;white-space:nowrap;font-size:13px;border-right:1px solid #0e0e0e;max-width:220px;overflow:hidden;transition:color .2s,background .2s;animation:tabIn .28s cubic-bezier(.2,.9,.3,1.2) both}
+.tab:hover{color:#bbb;background:#080808}
+.tab.active{color:#fff;background:#060606}
+.tab.closing{animation:tabOut .22s ease forwards}
+@keyframes tabIn{from{opacity:0;transform:translateY(-10px) scale(.92)}to{opacity:1;transform:none}}
+@keyframes tabOut{to{opacity:0;max-width:0;padding-left:0;padding-right:0;transform:scale(.9)}}
+.tab .dot{width:7px;height:7px;border-radius:50%;background:#4aa3ff;flex:none;opacity:.9}
+.tab .name{overflow:hidden;text-overflow:ellipsis;user-select:none}
+.tab input{all:unset;width:110px;color:#fff;border-bottom:1px solid #4aa3ff;font-size:13px;padding:1px 0}
+.tab .x{all:unset;cursor:pointer;width:18px;height:18px;line-height:18px;text-align:center;border-radius:5px;font-size:15px;color:#666;opacity:0;transition:opacity .15s,background .15s,color .15s;flex:none}
+.tab:hover .x,.tab.active .x{opacity:1}
+.tab .x:hover{background:#1c1c1c;color:#fff}
+#ind{position:absolute;bottom:0;height:2px;background:#4aa3ff;border-radius:2px;box-shadow:0 0 10px #4aa3ff;transition:left .28s cubic-bezier(.3,.9,.3,1),width .28s cubic-bezier(.3,.9,.3,1);left:0;width:0}
+#add{all:unset;cursor:pointer;width:44px;flex:none;text-align:center;font-size:20px;color:#666;transition:color .2s,transform .25s}
+#add:hover{color:#fff;transform:rotate(90deg)}
+.tab:focus-visible,#add:focus-visible,.x:focus-visible{outline:1px solid #4aa3ff;outline-offset:-2px}
 
-html, body {
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
-}
-
-svg.i {
-  width: 16px;
-  height: 16px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.7;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  flex-shrink: 0;
-}
-
-.hide {
-  display: none !important;
-}
-
-#app {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Tab bar */
-
-#bar {
-  display: flex;
-  align-items: stretch;
-  height: 42px;
-  flex-shrink: 0;
-  background: var(--bg);
-  border-bottom: 1px solid var(--line);
-}
-
-#tabs {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: stretch;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-#tabs::-webkit-scrollbar {
-  display: none;
-}
-
-.tab {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 110px;
-  max-width: 220px;
-  padding: 0 8px 0 13px;
-  border-right: 1px solid var(--line);
-  color: var(--muted);
-  font-size: 13px;
-  cursor: pointer;
-  flex-shrink: 0;
-  user-select: none;
-  transition: background .15s, color .15s;
-  animation: tin .22s both;
-}
-
-@keyframes tin {
-  from {
-    opacity: 0;
-    transform: translateY(5px);
-  }
-}
-
-.tab:hover {
-  background: var(--bg2);
-  color: #d6d6da;
-}
-
-.tab.on {
-  background: var(--bg3);
-  color: #fff;
-}
-
-.tab.on::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: 2px;
-  background: var(--accent);
-}
-
-.tab.over::before {
-  content: '';
-  position: absolute;
-  left: -1px;
-  top: 6px;
-  bottom: 6px;
-  width: 2px;
-  background: #8ab4ff;
-  border-radius: 2px;
-}
-
-.tab.drag {
-  opacity: .4;
-}
-
-.tab .nm {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.tab .x {
-  width: 18px;
-  height: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 5px;
-  font-size: 11px;
-  opacity: 0;
-  transition: opacity .15s, background .15s;
-}
-
-.tab:hover .x,
-.tab.on .x {
-  opacity: .65;
-}
-
-.tab .x:hover {
-  opacity: 1;
-  background: rgba(255,255,255,.14);
-}
-
-#add {
-  width: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--muted);
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: color .15s, background .15s;
-}
-
-#add:hover {
-  color: #fff;
-  background: var(--bg2);
-}
-
-/* Editor */
-
-#editor {
-  flex: 1;
-  min-height: 0;
-  position: relative;
-}
-
-#loading {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--muted);
-  font-size: 13px;
-  background: var(--bg);
-}
-
-/* Status bar */
-
-#status {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  height: 26px;
-  padding: 0 14px;
-  flex-shrink: 0;
-  background: var(--bg);
-  border-top: 1px solid var(--line);
-  font-size: 12px;
-  color: var(--muted);
-}
-
-#status .sp {
-  flex: 1;
-}
-
-#status b {
-  color: #c9c9ce;
-  font-weight: 500;
-}
-
-/* Tab context menu */
-
-#menu {
-  position: fixed;
-  z-index: 40;
-  min-width: 168px;
-  padding: 5px;
-  background: #161616;
-  border: 1px solid var(--line2);
-  border-radius: 10px;
-  box-shadow: 0 14px 40px rgba(0,0,0,.6);
-  animation: tin .12s both;
-}
-
-#menu div {
-  padding: 7px 11px;
-  border-radius: 6px;
-  font-size: 13px;
-  cursor: pointer;
-  display: flex;
-  justify-content: space-between;
-  gap: 20px;
-}
-
-#menu div:hover {
-  background: rgba(255,255,255,.09);
-}
-
-#menu small {
-  color: var(--muted);
-}
-
-#menu hr {
-  border: 0;
-  border-top: 1px solid var(--line);
-  margin: 4px 2px;
-}
-
-/* Notifications */
-
-#toast {
-  position: fixed;
-  left: 50%;
-  bottom: 42px;
-  transform: translate(-50%, 14px);
-  padding: 8px 16px;
-  border-radius: 10px;
-  background: #1c1c1c;
-  border: 1px solid var(--line2);
-  font-size: 13px;
-  opacity: 0;
-  transition: opacity .25s, transform .25s;
-  z-index: 50;
-  pointer-events: none;
-}
-
-#toast.on {
-  opacity: 1;
-  transform: translate(-50%, 0);
-}
+/* editor */
+#wrap{flex:1;min-height:0;position:relative;background:#000}
+#ed{position:absolute;inset:0;transition:opacity .18s ease,transform .18s ease}
+#ed.swap{opacity:0;transform:translateX(10px)}
+#status{display:flex;gap:18px;align-items:center;flex:none;height:24px;padding:0 14px;font-size:12px;color:#666;border-top:1px solid #161616;background:#000}
+#status .sp{margin-left:auto}
+#status b{font-weight:500;color:#9a9a9a}
+#hint{position:absolute;right:16px;bottom:14px;font-size:12px;color:#555;pointer-events:none;animation:fade 6s 1.5s ease forwards;opacity:0;z-index:5}
+@keyframes fade{0%{opacity:0}10%,80%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style>
-
-<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/min/vs/loader.js"></script>
 </head>
-
 <body>
 <div id="app">
-
   <div id="bar">
-    <div id="tabs"></div>
+    <div id="tabs" role="tablist"><div id="ind"></div></div>
+    <button id="add" type="button" aria-label="New tab" title="New tab (Alt+N)">+</button>
   </div>
-
-  <div id="editor">
-    <div id="loading">Loading Lucent...</div>
-  </div>
-
-  <div id="status">
-    <span id="stName"><b></b></span>
-    <span class="sp"></span>
-    <span id="stPos">Ln 1, Col 1</span>
-    <span id="stTab">Spaces: 2</span>
-    <span>UTF-8</span>
-    <span>Lua</span>
-  </div>
-
+  <div id="wrap"><div id="ed"></div><div id="hint">Double-click a tab to rename · Alt+N new · Alt+W close</div></div>
 </div>
 
-<div id="menu" class="hide"></div>
-<div id="toast"></div>
-
+<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs/loader.js"></script>
 <script>
-const $ = id => document.getElementById(id);
-
-const mk = (tag, cls, html) => {
-  const el = document.createElement(tag);
-  if (cls) el.className = cls;
-  if (html !== undefined) el.innerHTML = html;
-  return el;
-};
-
-const ls = {
-  get(key, fallback) {
-    try {
-      const value = JSON.parse(localStorage.getItem(key));
-      return value == null ? fallback : value;
-    } catch {
-      return fallback;
-    }
-  },
-
-  set(key, value) {
-    try {
-      localStorage.setItem(key, JSON.stringify(value));
-    } catch {}
-  }
-};
-
-const uid = () => Math.random().toString(36).slice(2, 9);
-
-/* Lucent welcome script */
-
-const WELCOME = `-- Welcome to Lucent
--- A lightweight environment for writing Lua.
--- Your next idea starts here.
-
-local function welcome()
-    local message = "Welcome To Lucent"
-
-    print("================================")
-    print("       Welcome To Lucent")
-    print("================================")
-    print("Your workspace is ready.")
-    print("Start writing, experimenting,")
-    print("and building something new.")
-    print("================================")
-
-    return message
-end
-
-local greeting = welcome()
-
-print(greeting)
-`;
-
-let tabs = [];
-let active = null;
-let editor = null;
-let renaming = false;
-
-/* Notifications */
-
-let toastTimer;
-
-function toast(message) {
-  const el = $('toast');
-
-  el.textContent = message;
-  el.classList.add('on');
-
-  clearTimeout(toastTimer);
-
-  toastTimer = setTimeout(() => {
-    el.classList.remove('on');
-  }, 1800);
-}
-
-const cur = () => tabs.find(tab => tab.id === active);
-
-/* Automatic local persistence */
-
-function persist() {
-  clearTimeout(persist.timer);
-
-  persist.timer = setTimeout(() => {
-    ls.set('lucent.state', {
-      active,
-      tabs: tabs.map(tab => ({
-        id: tab.id,
-        name: tab.name,
-        content: tab.model.getValue()
-      }))
-    });
-  }, 250);
-}
-
-/* Tabs */
-
-function uniqueName(base) {
-  const strip = base.replace(/\.lua$/i, '');
-  let name = base;
-  let count = 2;
-
-  while (tabs.some(tab => tab.name === name)) {
-    name = strip + ' ' + count++ +
-      (/\.lua$/i.test(base) ? '.lua' : '');
-  }
-
-  return name;
-}
-
-function addTab(name, content, id) {
-  const tab = {
-    id: id || uid(),
-    name: name || uniqueName('Script.lua'),
-    model: monaco.editor.createModel(
-      content == null ? '' : content,
-      'lua'
-    ),
-    fresh: true
-  };
-
-  tab.model.onDidChangeContent(persist);
-
-  tabs.push(tab);
-  return tab;
-}
-
-function newTab(name, content) {
-  const tab = addTab(name || uniqueName('Script.lua'), content);
-
-  select(tab.id);
-  persist();
-
-  const el = document.querySelector(
-    '.tab[data-id="' + tab.id + '"]'
-  );
-
-  if (el) {
-    el.scrollIntoView({ inline: 'nearest' });
-  }
-
-  editor.focus();
-  return tab;
-}
-
-function select(id) {
-  const previous = cur();
-
-  if (previous && editor) {
-    previous.view = editor.saveViewState();
-  }
-
-  active = id;
-
-  const tab = cur();
-
-  if (!tab || !editor) return;
-
-  editor.setModel(tab.model);
-
-  if (tab.view) {
-    editor.restoreViewState(tab.view);
-  }
-
-  render();
-  updateStatus();
-  editor.focus();
-  persist();
-}
-
-function closeTab(id) {
-  const index = tabs.findIndex(tab => tab.id === id);
-
-  if (index < 0) return;
-
-  const wasActive = id === active;
-  const tab = tabs[index];
-
-  tabs.splice(index, 1);
-
-  if (!tabs.length) {
-    tab.model.dispose();
-
-    const replacement = addTab('Script.lua', '');
-    select(replacement.id);
-    persist();
-    return;
-  }
-
-  if (wasActive) {
-    const next = tabs[Math.min(index, tabs.length - 1)];
-
-    active = null;
-    select(next.id);
-  } else {
-    render();
-  }
-
-  setTimeout(() => tab.model.dispose(), 0);
-  persist();
-}
-
-function render() {
-  const bar = $('tabs');
-  bar.innerHTML = '';
-
-  tabs.forEach(tab => {
-    const el = mk(
-      'div',
-      'tab' + (tab.id === active ? ' on' : ''),
-      '<svg class="i" viewBox="0 0 24 24">' +
-        '<path d="M6 3h8l4 4v14H6z"/>' +
-        '<path d="M14 3v4h4"/>' +
-      '</svg>' +
-      '<span class="nm"></span>' +
-      '<span class="x" title="Close">&#10005;</span>'
-    );
-
-    el.dataset.id = tab.id;
-    el.draggable = true;
-
-    el.querySelector('.nm').textContent = tab.name;
-    el.title = tab.name + ' (double-click to rename)';
-
-    if (!tab.fresh) {
-      el.style.animation = 'none';
-    }
-
-    tab.fresh = false;
-
-    el.onclick = event => {
-      if (event.target.closest('.x')) {
-        closeTab(tab.id);
-        return;
-      }
-
-      if (tab.id !== active) {
-        select(tab.id);
-      }
-    };
-
-    el.ondblclick = event => {
-      if (!event.target.closest('.x')) {
-        startRename(tab.id);
-      }
-    };
-
-    el.onauxclick = event => {
-      if (event.button === 1) {
-        closeTab(tab.id);
-      }
-    };
-
-    el.oncontextmenu = event => {
-      event.preventDefault();
-      showMenu(event.clientX, event.clientY, tab.id);
-    };
-
-    el.ondragstart = event => {
-      if (renaming) {
-        event.preventDefault();
-        return;
-      }
-
-      el.classList.add('drag');
-
-      try {
-        event.dataTransfer.setData('text/plain', tab.id);
-        event.dataTransfer.effectAllowed = 'move';
-      } catch {}
-
-      render.drag = tab.id;
-    };
-
-    el.ondragend = () => {
-      el.classList.remove('drag');
-
-      document.querySelectorAll('.tab.over').forEach(item => {
-        item.classList.remove('over');
-      });
-
-      render.drag = null;
-    };
-
-    el.ondragover = event => {
-      if (!render.drag) return;
-
-      event.preventDefault();
-
-      document.querySelectorAll('.tab.over').forEach(item => {
-        item.classList.remove('over');
-      });
-
-      el.classList.add('over');
-    };
-
-    el.ondrop = event => {
-      event.preventDefault();
-
-      const from = render.drag;
-      render.drag = null;
-
-      if (from && from !== tab.id) {
-        moveTab(from, tab.id);
-      }
-    };
-
-    bar.appendChild(el);
-  });
-
-  const add = mk(
-    'div',
-    '',
-    '<svg class="i" viewBox="0 0 24 24">' +
-      '<path d="M12 5v14M5 12h14"/>' +
-    '</svg>'
-  );
-
-  add.id = 'add';
-  add.title = 'New tab (Ctrl+T)';
-  add.onclick = () => newTab();
-
-  bar.appendChild(add);
-}
-
-function moveTab(fromId, beforeId) {
-  const fromIndex = tabs.findIndex(tab => tab.id === fromId);
-
-  if (fromIndex < 0) return;
-
-  const item = tabs.splice(fromIndex, 1)[0];
-  const beforeIndex = tabs.findIndex(tab => tab.id === beforeId);
-
-  tabs.splice(beforeIndex, 0, item);
-
-  render();
-  persist();
-}
-
-$('tabs').addEventListener('wheel', event => {
-  if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
-    $('tabs').scrollLeft += event.deltaY;
-    event.preventDefault();
-  }
-}, { passive: false });
-
-/* Rename tabs */
-
-function startRename(id) {
-  if (renaming) return;
-
-  const tab = tabs.find(item => item.id === id);
-
-  if (!tab) return;
-
-  if (id !== active) {
-    select(id);
-  }
-
-  const el = document.querySelector(
-    '.tab[data-id="' + id + '"]'
-  );
-
-  if (!el) return;
-
-  const name = el.querySelector('.nm');
-  const input = mk('input');
-
-  input.value = tab.name;
-  input.maxLength = 40;
-  input.spellcheck = false;
-
-  renaming = true;
-
-  name.replaceWith(input);
-
-  input.style.flex = '1';
-  input.style.minWidth = '0';
-  input.style.width = '100%';
-  input.style.background = '#0a0a0a';
-  input.style.color = '#fff';
-  input.style.border = '1px solid #6b8cff';
-  input.style.borderRadius = '5px';
-  input.style.padding = '2px 6px';
-  input.style.font = 'inherit';
-  input.style.outline = 'none';
-
-  input.focus();
-  input.select();
-
-  let finished = false;
-
-  const finish = accept => {
-    if (finished) return;
-
-    finished = true;
-    renaming = false;
-
-    const value = input.value.trim()
-      .replace(/[\\/:*?"<>|]/g, '_');
-
-    if (accept && value && value !== tab.name) {
-      tab.name = tabs.some(
-        item => item !== tab && item.name === value
-      ) ? uniqueName(value) : value;
-
-      persist();
-      toast('Renamed to ' + tab.name);
-    }
-
-    render();
-    updateStatus();
-
-    if (editor) editor.focus();
-  };
-
-  input.onkeydown = event => {
-    event.stopPropagation();
-
-    if (event.key === 'Enter') finish(true);
-    if (event.key === 'Escape') finish(false);
-  };
-
-  input.onblur = () => finish(true);
-  input.onclick = event => event.stopPropagation();
-  input.ondblclick = event => event.stopPropagation();
-  input.onmousedown = event => event.stopPropagation();
-  input.ondragstart = event => event.preventDefault();
-};
-
-/* Tab context menu */
-
-function showMenu(x, y, id) {
-  const menu = $('menu');
-  menu.innerHTML = '';
-
-  const item = (label, shortcut, action) => {
-    const el = mk(
-      'div',
-      '',
-      '<span></span><small></small>'
-    );
-
-    el.firstChild.textContent = label;
-    el.lastChild.textContent = shortcut || '';
-
-    el.onclick = () => {
-      hideMenu();
-      action();
-    };
-
-    menu.appendChild(el);
-  };
-
-  item('Rename', 'F2', () => startRename(id));
-
-  item('Duplicate', '', () => {
-    const tab = tabs.find(item => item.id === id);
-
-    if (tab) {
-      newTab(uniqueName(tab.name), tab.model.getValue());
-    }
-  });
-
-  menu.appendChild(mk('hr'));
-
-  item('Close', 'Ctrl+W', () => closeTab(id));
-
-  item('Close others', '', () => {
-    const others = tabs
-      .filter(tab => tab.id !== id)
-      .map(tab => tab.id);
-
-    others.forEach(closeTab);
-  });
-
-  item('Close all', '', () => {
-    [...tabs].forEach(tab => closeTab(tab.id));
-  });
-
-  menu.classList.remove('hide');
-
-  menu.style.left =
-    Math.max(0, Math.min(x, innerWidth - 190)) + 'px';
-
-  menu.style.top =
-    Math.max(0, Math.min(y, innerHeight - 190)) + 'px';
-}
-
-const hideMenu = () => $('menu').classList.add('hide');
-
-addEventListener('mousedown', event => {
-  if (!event.target.closest('#menu')) {
-    hideMenu();
-  }
-});
-
-addEventListener('blur', hideMenu);
-
-/* Keyboard shortcuts */
-
-addEventListener('keydown', event => {
-  const mod = event.ctrlKey || event.metaKey;
-  const key = event.key.toLowerCase();
-
-  if (event.key === 'F2') {
-    event.preventDefault();
-
-    if (active) startRename(active);
-  } else if (mod && key === 't') {
-    event.preventDefault();
-    newTab();
-  } else if (mod && key === 'w') {
-    event.preventDefault();
-
-    if (active) closeTab(active);
-  } else if (event.ctrlKey && event.key === 'Tab') {
-    event.preventDefault();
-
-    if (!tabs.length) return;
-
-    const index = tabs.findIndex(tab => tab.id === active);
-    const offset = event.shiftKey ? tabs.length - 1 : 1;
-
-    select(tabs[(index + offset) % tabs.length].id);
-  } else if (event.key === 'Escape') {
-    hideMenu();
-  }
-});
-
-/* Monaco editor setup */
-
-const CDN =
-  'https://cdn.jsdelivr.net/npm/monaco-editor@0.52.0/min/';
-
-self.MonacoEnvironment = {
-  getWorkerUrl: () =>
-    'data:text/javascript;charset=utf-8,' +
-    encodeURIComponent(
-      "self.MonacoEnvironment={baseUrl:'" + CDN +
-      "'};importScripts('" + CDN +
-      "vs/base/worker/workerMain.js');"
-    )
-};
-
-require.config({
-  paths: {
-    vs: CDN + 'vs'
-  }
-});
-
-require(['vs/editor/editor.main'], () => {
-
-  monaco.editor.defineTheme('lucent', {
-    base: 'vs-dark',
-    inherit: false,
-
-    rules: [
-      { token: '', foreground: 'E6E6EA' },
-      { token: 'comment', foreground: '5F6672', fontStyle: 'italic' },
-      { token: 'keyword', foreground: 'C792EA' },
-      { token: 'string', foreground: 'C3E88D' },
-      { token: 'string.escape', foreground: '89DDFF' },
-      { token: 'number', foreground: 'F78C6C' },
-      { token: 'identifier', foreground: 'E6E6EA' },
-      { token: 'delimiter', foreground: '9AA3B2' },
-      { token: 'delimiter.bracket', foreground: 'FFD479' },
-      { token: 'delimiter.parenthesis', foreground: 'FFD479' },
-      { token: 'delimiter.square', foreground: 'FFD479' },
-      { token: 'operator', foreground: '89DDFF' },
-      { token: 'predefined', foreground: '82AAFF' },
-      { token: 'type.identifier', foreground: 'FFCB6B' }
+var BASE='https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min';
+window.MonacoEnvironment={getWorkerUrl:function(){
+  return 'data:text/javascript;charset=utf-8,'+encodeURIComponent("self.MonacoEnvironment={baseUrl:'"+BASE+"/'};importScripts('"+BASE+"/vs/base/worker/workerMain.js');");
+}};
+require.config({paths:{vs:BASE+'/vs'}});
+
+var SAMPLE_MAIN=[
+'-- Welcome to the Lua editor',
+'local Player = {}',
+'Player.__index = Player',
+'',
+'function Player.new(name, hp)',
+'  return setmetatable({ name = name, hp = hp or 100 }, Player)',
+'end',
+'',
+'function Player:damage(amount)',
+'  self.hp = math.max(0, self.hp - amount)',
+'  if self.hp == 0 then',
+'    print(self.name .. " has fallen")',
+'  end',
+'end',
+'',
+'local hero = Player.new("Ada")',
+'for i = 1, 3 do',
+'  hero:damage(i * 20)',
+'  print(string.format("%s: %d hp", hero.name, hero.hp))',
+'end',''].join('\n');
+var SAMPLE_UTIL='-- helpers\nlocal M = {}\n\nfunction M.map(t, fn)\n  local out = {}\n  for i, v in ipairs(t) do out[i] = fn(v) end\n  return out\nend\n\nreturn M\n';
+
+var KEY='lua-editor-tabs-v2';
+require(['vs/editor/editor.main'],function(){
+  monaco.editor.defineTheme('void',{base:'vs-dark',inherit:true,
+    rules:[
+      {token:'comment',foreground:'5c6370',fontStyle:'italic'},
+      {token:'keyword',foreground:'c678dd'},
+      {token:'string',foreground:'98c379'},
+      {token:'number',foreground:'d19a66'},
+      {token:'identifier',foreground:'e6e6e6'},
+      {token:'delimiter',foreground:'8a8f98'},
+      {token:'predefined',foreground:'61afef'}
     ],
-
-    colors: {
-      'editor.background': '#0f0f0f',
-      'editorGutter.background': '#0f0f0f',
-      'minimap.background': '#0f0f0f',
-      'editor.lineHighlightBackground': '#171717',
-      'editor.lineHighlightBorder': '#00000000',
-      'editor.selectionBackground': '#ffffff26',
-      'editor.inactiveSelectionBackground': '#ffffff14',
-      'editorCursor.foreground': '#ffffff',
-      'editorLineNumber.foreground': '#4b4b52',
-      'editorLineNumber.activeForeground': '#d6d6dc',
-      'editorIndentGuide.background1': '#222222',
-      'editorIndentGuide.activeBackground1': '#3a3a3a',
-      'editorBracketMatch.background': '#ffffff1a',
-      'editorBracketMatch.border': '#ffffff40',
-      'editorWidget.background': '#141414',
-      'editorWidget.border': '#2a2a2a',
-      'editorSuggestWidget.background': '#141414',
-      'editorSuggestWidget.border': '#2a2a2a',
-      'editorSuggestWidget.selectedBackground': '#262626',
-      'editorHoverWidget.background': '#141414',
-      'input.background': '#0a0a0a',
-      'scrollbarSlider.background': '#ffffff1a',
-      'scrollbarSlider.hoverBackground': '#ffffff2e',
-      'scrollbarSlider.activeBackground': '#ffffff40',
-      'scrollbar.shadow': '#00000000'
-    }
+    colors:{
+      'editor.background':'#000000','editorGutter.background':'#000000',
+      'editor.lineHighlightBackground':'#0c0c0c','editor.lineHighlightBorder':'#00000000',
+      'editorLineNumber.foreground':'#3d3d3d','editorLineNumber.activeForeground':'#a0a0a0',
+      'editor.selectionBackground':'#1d4f8a88','editorCursor.foreground':'#ffffff',
+      'editorIndentGuide.background1':'#141414','editorIndentGuide.activeBackground1':'#2c2c2c',
+      'minimap.background':'#000000','scrollbarSlider.background':'#ffffff14','scrollbarSlider.hoverBackground':'#ffffff26',
+      'editorWidget.background':'#080808','editorSuggestWidget.background':'#080808','editorSuggestWidget.border':'#1a1a1a',
+      'focusBorder':'#00000000'
+    }});
+  var editor=monaco.editor.create(document.getElementById('ed'),{
+    model:null,theme:'void',automaticLayout:true,fontSize:14,lineHeight:22,
+    fontFamily:'"JetBrains Mono","Fira Code",Menlo,Consolas,monospace',fontLigatures:true,
+    minimap:{enabled:false},smoothScrolling:true,cursorBlinking:'smooth',cursorSmoothCaretAnimation:'on',
+    padding:{top:14},scrollBeyondLastLine:false,renderLineHighlight:'all',roundedSelection:true,
+    bracketPairColorization:{enabled:true}
   });
 
-  editor = monaco.editor.create($('editor'), {
-    language: 'lua',
-    theme: 'lucent',
-    automaticLayout: true,
+  var tabsEl=document.getElementById('tabs'),ind=document.getElementById('ind'),edEl=document.getElementById('ed');
+  var tabs=[],active=null,n=0;
 
-    fontFamily:
-      "'JetBrains Mono', 'Cascadia Code', Consolas, monospace",
+  function save(){
+    try{localStorage.setItem(KEY,JSON.stringify({a:active,t:tabs.map(function(t){return{id:t.id,name:t.name,text:t.model.getValue()}})}))}catch(e){}
+  }
+  var st;function saveSoon(){clearTimeout(st);st=setTimeout(save,300)}
 
-    fontSize: 14,
-    lineHeight: 23,
-    tabSize: 2,
-    wordWrap: 'off',
-    minimap: { enabled: false },
-    fontLigatures: true,
-    renderLineHighlight: 'all',
-    scrollBeyondLastLine: false,
-    padding: { top: 14, bottom: 14 },
-    smoothScrolling: true,
-    cursorSmoothCaretAnimation: 'on',
-    cursorBlinking: 'smooth',
-    bracketPairColorization: { enabled: true },
-    guides: {
-      indentation: true,
-      bracketPairs: true
-    },
-    lineNumbersMinChars: 3,
-    glyphMargin: false,
-    folding: true,
-    roundedSelection: true,
+  function moveInd(){
+    var t=tabs.filter(function(x){return x.id===active})[0];
+    if(!t||!t.el){ind.style.width='0';return}
+    ind.style.left=t.el.offsetLeft+'px';ind.style.width=t.el.offsetWidth+'px';
+  }
+  function trackInd(){var s=performance.now();(function f(){moveInd();if(performance.now()-s<420)requestAnimationFrame(f)})()}
 
-    scrollbar: {
-      verticalScrollbarSize: 10,
-      horizontalScrollbarSize: 10
+  function updateStatus(){}
+
+  function activate(id,instant){
+    var t=tabs.filter(function(x){return x.id===id})[0];if(!t)return;
+    var cur=tabs.filter(function(x){return x.id===active})[0];
+    if(cur&&cur!==t)cur.view=editor.saveViewState();
+    active=id;
+    tabs.forEach(function(x){x.el.classList.toggle('active',x.id===id);x.el.setAttribute('aria-selected',x.id===id)});
+    function swap(){editor.setModel(t.model);if(t.view)editor.restoreViewState(t.view);editor.focus();edEl.classList.remove('swap');updateStatus()}
+    if(instant||cur===t){swap()}else{edEl.classList.add('swap');setTimeout(swap,140)}
+    t.el.scrollIntoView({inline:'nearest',block:'nearest'});
+    trackInd();save();
+  }
+
+  function startRename(t){
+    var nameEl=t.el.querySelector('.name');if(!nameEl)return;
+    var inp=document.createElement('input');inp.value=t.name;inp.setAttribute('aria-label','Tab name');
+    nameEl.replaceWith(inp);inp.focus();
+    var dot=t.name.lastIndexOf('.');inp.setSelectionRange(0,dot>0?dot:t.name.length);
+    var done=false;
+    function finish(ok){
+      if(done)return;done=true;
+      var v=inp.value.trim().replace(/[\/\\]/g,'');
+      if(ok&&v)t.name=v;
+      var sp=document.createElement('span');sp.className='name';sp.textContent=t.name;
+      inp.replaceWith(sp);updateStatus();trackInd();save();editor.focus();
     }
-  });
+    inp.addEventListener('keydown',function(e){e.stopPropagation();if(e.key==='Enter')finish(true);if(e.key==='Escape')finish(false)});
+    inp.addEventListener('blur',function(){finish(true)});
+    inp.addEventListener('click',function(e){e.stopPropagation()});
+    inp.addEventListener('dblclick',function(e){e.stopPropagation()});
+    trackInd();
+  }
 
-  /* Lua autocomplete */
+  function addTab(name,text,id,noActivate){
+    id=id||('t'+(++n)+'_'+Date.now());
+    if(!name){var k=1;var names=tabs.map(function(x){return x.name});while(names.indexOf('untitled'+k+'.lua')>-1)k++;name='untitled'+k+'.lua'}
+    var model=monaco.editor.createModel(text||'','lua');
+    model.onDidChangeContent(saveSoon);
+    var el=document.createElement('div');el.className='tab';el.setAttribute('role','tab');el.tabIndex=0;
+    el.innerHTML='<span class="dot"></span><span class="name"></span><button class="x" type="button" aria-label="Close tab">×</button>';
+    el.querySelector('.name').textContent=name;
+    var t={id:id,name:name,model:model,el:el};tabs.push(t);
+    tabsEl.appendChild(el);
+    el.addEventListener('click',function(){activate(id)});
+    el.addEventListener('dblclick',function(){startRename(t)});
+    el.addEventListener('keydown',function(e){if(e.target===el&&(e.key==='Enter'||e.key===' ')){e.preventDefault();activate(id)}});
+    el.querySelector('.x').addEventListener('click',function(e){e.stopPropagation();closeTab(id)});
+    el.addEventListener('auxclick',function(e){if(e.button===1)closeTab(id)});
+    if(!noActivate)activate(id);
+    trackInd();return t;
+  }
 
-  const K = monaco.languages.CompletionItemKind;
-  const SN = monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet;
+  function closeTab(id){
+    var i=tabs.findIndex(function(x){return x.id===id});if(i<0)return;
+    var t=tabs[i];tabs.splice(i,1);
+    t.el.classList.add('closing');
+    var wasActive=(active===id);
+    setTimeout(function(){t.el.remove();if(t.model.dispose)t.model.dispose();trackInd();save()},230);
+    if(!tabs.length){addTab(null,'');return}
+    if(wasActive){active=null;activate(tabs[Math.min(i,tabs.length-1)].id)}
+    trackInd();
+  }
 
-  const SNIP = [
-    ['print', 'print(${1:value})'],
-    ['local', 'local ${1:name} = ${2:value}'],
-    ['function', 'local function ${1:name}(${2:args})\n\t$0\nend'],
-    ['if', 'if ${1:condition} then\n\t$0\nend'],
-    ['ifelse', 'if ${1:condition} then\n\t$2\nelse\n\t$0\nend'],
-    ['for', 'for ${1:i} = ${2:1}, ${3:10} do\n\t$0\nend'],
-    ['forp', 'for ${1:k}, ${2:v} in pairs(${3:t}) do\n\t$0\nend'],
-    ['fori', 'for ${1:i}, ${2:v} in ipairs(${3:t}) do\n\t$0\nend'],
-    ['while', 'while ${1:condition} do\n\t$0\nend'],
-    ['pcall', 'local ok, err = pcall(function()\n\t$0\nend)'],
-    ['table', 'local ${1:t} = {\n\t$0\n}']
-  ];
+  // restore or seed
+  var saved=null;try{saved=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+  if(saved&&saved.t&&saved.t.length){
+    saved.t.forEach(function(s){addTab(s.name,s.text,s.id,true)});
+    activate((saved.a&&tabs.some(function(x){return x.id===saved.a}))?saved.a:tabs[0].id,true);
+  }else{
+    addTab('main.lua','',null,true);
+    activate(tabs[0].id,true);
+  }
 
-  const LIB = {
-    string: [
-      'sub', 'len', 'upper', 'lower', 'format', 'find',
-      'match', 'gmatch', 'gsub', 'rep', 'reverse', 'byte', 'char'
-    ],
-
-    table: [
-      'insert', 'remove', 'concat', 'sort', 'unpack', 'pack'
-    ],
-
-    math: [
-      'floor', 'ceil', 'abs', 'sqrt', 'sin', 'cos', 'tan',
-      'random', 'randomseed', 'max', 'min', 'huge', 'pi', 'fmod'
-    ],
-
-    os: [
-      'time', 'clock', 'date'
-    ]
-  };
-
-  monaco.languages.registerCompletionItemProvider('lua', {
-    triggerCharacters: ['.'],
-
-    provideCompletionItems: (model, position) => {
-      const word = model.getWordUntilPosition(position);
-
-      const range = {
-        startLineNumber: position.lineNumber,
-        endLineNumber: position.lineNumber,
-        startColumn: word.startColumn,
-        endColumn: word.endColumn
-      };
-
-      const before = model
-        .getLineContent(position.lineNumber)
-        .slice(0, position.column - 1);
-
-      const match = before.match(/([a-z]+)\.\w*$/);
-
-      if (match && LIB[match[1]]) {
-        return {
-          suggestions: LIB[match[1]].map(name => ({
-            label: name,
-            kind: K.Function,
-            insertText: name,
-            range
-          }))
-        };
-      }
-
-      return {
-        suggestions: SNIP.map(([label, text]) => ({
-          label,
-          kind: K.Snippet,
-          insertText: text,
-          insertTextRules: SN,
-          range
-        })).concat(
-          Object.keys(LIB).map(name => ({
-            label: name,
-            kind: K.Module,
-            insertText: name,
-            range
-          }))
-        )
-      };
-    }
-  });
-
-  /* Status bar */
-
+  document.getElementById('add').addEventListener('click',function(){addTab()});
   editor.onDidChangeCursorPosition(updateStatus);
-
-  /* Restore tabs and editor contents */
-
-  const saved = ls.get('lucent.state', null);
-
-  if (saved && saved.tabs && saved.tabs.length) {
-    saved.tabs.forEach(tab => {
-      addTab(tab.name, tab.content, tab.id);
-    });
-
-    select(
-      tabs.some(tab => tab.id === saved.active)
-        ? saved.active
-        : tabs[0].id
-    );
-  } else {
-    const tab = addTab('Welcome.lua', WELCOME);
-    select(tab.id);
-  }
-
-  const loading = $('loading');
-
-  if (loading) loading.remove();
-
-  editor.focus();
+  editor.onDidChangeCursorSelection(updateStatus);
+  window.addEventListener('resize',trackInd);
+  tabsEl.addEventListener('scroll',moveInd);
+  window.addEventListener('keydown',function(e){
+    if(!e.altKey)return;
+    var k=e.key.toLowerCase();
+    if(k==='n'){e.preventDefault();addTab()}
+    else if(k==='w'){e.preventDefault();closeTab(active)}
+    else if(k==='r'){e.preventDefault();var t=tabs.filter(function(x){return x.id===active})[0];if(t)startRename(t)}
+  });
+  // API for the host app (WinForms WebView2)
+  window.editorApi={
+    getText:function(){return editor.getValue()},
+    getName:function(){var t=tabs.filter(function(x){return x.id===active})[0];return t?t.name:''},
+    setText:function(text,name){
+      var t=tabs.filter(function(x){return x.id===active})[0];if(!t)return;
+      t.model.setValue(text||'');editor.setScrollTop(0);editor.setPosition({lineNumber:1,column:1});
+      if(name){t.name=name;var ne=t.el.querySelector('.name');if(ne)ne.textContent=name;trackInd()}
+      save();
+    },
+    clear:function(){editor.setValue('');editor.focus()}
+  };
+  setTimeout(trackInd,60);
 });
-
-function updateStatus() {
-  const tab = cur();
-
-  document.querySelector('#stName b').textContent =
-    tab ? tab.name : '';
-
-  if (editor && tab) {
-    const position = editor.getPosition();
-
-    if (position) {
-      $('stPos').textContent =
-        'Ln ' + position.lineNumber +
-        ', Col ' + position.column;
-    }
-  }
-}
 </script>
 </body>
 </html>
